@@ -64,7 +64,7 @@ final public class HttpRequest implements Runnable {
         String fileName = tokens.nextToken();
         // Prepend a "." so file request is within current dir
         fileName = "." + fileName;
-
+        // open file before sending to client
         FileInputStream fis = null;
         boolean fileExists = true;
         try {
@@ -120,8 +120,15 @@ final public class HttpRequest implements Runnable {
 
     }
 
+    /**
+     * sendBytes uses fis and os to send file to client
+     *
+     * @param fis file input stream
+     * @param os dataoutput stream
+     * @throws Exception returns exception
+     */
     private void sendBytes(FileInputStream fis, DataOutputStream os) throws Exception {
-        // Construct 1k buffer to hold bytes on  their way to socket
+        // Construct 1k buffer to hold bytes on their way to socket
         byte[] buffer = new byte[1024];
         int bytes = 0;
         // copy requested file into socket's output stream
@@ -130,6 +137,13 @@ final public class HttpRequest implements Runnable {
         }
     }
 
+    /**
+     * contentType uses fileName to read extension and return
+     * string representing MIME type or application/octet-stream if extension unknown
+     *
+     * @param fileName filename constructed in calling method
+     * @return content type string to be displayed
+     */
     private String contentType(String fileName) {
         if(fileName.endsWith(".htm") || fileName.endsWith(".html")) {
             return "text/html";

@@ -1,11 +1,6 @@
-import com.sun.xml.internal.ws.server.sei.EndpointResponseMessageBuilder;
-import javafx.util.Builder;
-import sun.net.www.http.HttpClient;
-
 import java.io.*;
 import java.net.*;
 import java.util.StringTokenizer;
-import java.util.stream.IntStream;
 
 /**
  * HttpRequest class used for threading
@@ -43,7 +38,7 @@ final public class HttpRequest implements Runnable {
      * processRequest method obtains socket input and output streams
      * request and header lines to console
      *
-     * @throws Exception returns exception to try catch
+     * @throws Exception returns exception
      */
     private void processRequest() throws Exception {
         // obtain ref to socket input and output stream
@@ -74,15 +69,15 @@ final public class HttpRequest implements Runnable {
         }
 
         // Get and display header lines
-        String headerLine = null;
+        String headerLine;
         while((headerLine = br.readLine()).length() != 0) {
             System.out.println(headerLine);
         }
 
         // Construct the Response message
         // three parts to response message status line, response headers, and entity body
-        String statusLine = null;
-        String contentTypeLine = null;
+        String statusLine;
+        String contentTypeLine;
         String entityBody = null;
         if (fileExists) {
             statusLine = "HTTP/1.0 200 OK" + CRLF;
@@ -108,16 +103,11 @@ final public class HttpRequest implements Runnable {
             os.writeBytes(entityBody);
         }
 
-        // if peer closed connection
-        if((br.read() == -1)) {
-            // CLose streams and socket
-            System.out.println("\nAll done. Streams and Socket is closing!\n");
-            socket.close();
-            is.close();
-            os.close();
-            br.close();
-        }
-
+        // Close streams and socket
+        socket.close();
+        is.close();
+        os.close();
+        br.close();
     }
 
     /**
@@ -130,7 +120,7 @@ final public class HttpRequest implements Runnable {
     private void sendBytes(FileInputStream fis, DataOutputStream os) throws Exception {
         // Construct 1k buffer to hold bytes on their way to socket
         byte[] buffer = new byte[1024];
-        int bytes = 0;
+        int bytes;
         // copy requested file into socket's output stream
         while ((bytes = fis.read(buffer)) != -1) {
             os.write(buffer,0,bytes);
@@ -145,18 +135,19 @@ final public class HttpRequest implements Runnable {
      * @return content type string to be displayed
      */
     private String contentType(String fileName) {
+        // if html file extension
         if(fileName.endsWith(".htm") || fileName.endsWith(".html")) {
             return "text/html";
         }
-
+        // if gif image extension
         if(fileName.endsWith(".gif")) {
             return "image/gif";
         }
-
+        // if jpeg image extension
         if(fileName.endsWith(".jpeg") || fileName.endsWith(".jpg")) {
             return "image/jpeg";
         }
-
+        // all other file extensions
         return "application/octet-stream";
     }
 }

@@ -1,6 +1,11 @@
+import com.sun.xml.internal.ws.server.sei.EndpointResponseMessageBuilder;
+import javafx.util.Builder;
+import sun.net.www.http.HttpClient;
+
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
+import java.util.StringTokenizer;
+import java.util.stream.IntStream;
 
 /**
  * HttpRequest class used for threading
@@ -52,12 +57,58 @@ final public class HttpRequest implements Runnable {
         // Display request line
         System.out.println("\n" + requestLine);
 
+        // Extract filename from request line
+        StringTokenizer tokens = new StringTokenizer(requestLine);
+        tokens.nextToken();
+        // skip over method GET
+        String fileName = tokens.nextToken();
+        // Prepend a "." so file request is within current dir
+        fileName = "." + fileName;
+
+        FileInputStream fis = null;
+        boolean fileExists = true;
+        try {
+            fis = new FileInputStream(fileName);
+        } catch(FileNotFoundException e) {
+            fileExists = false;
+        }
+
         // Get and display header lines
         String headerLine = null;
         while((headerLine = br.readLine()).length() != 0) {
             System.out.println(headerLine);
         }
 
+        // Construct the Response message
+        // three parts to response message status line, response headers, and entity body
+        String statusLine = null;
+        String contentTypeLine = null;
+        String entityBody = null;
+        if (fileExists) {
+            statusLine = "HTTP/1.0 200 OK" + CRLF;
+            contentTypeLine = "Content-type: " + contentType(fileName) + CRLF;
+        } else {
+            statusLine = "HTTP/1.0 404 Not Found" + CRLF;
+            contentTypeLine = "Content-Type: text/html" + CRLF;
+            entityBody = "<HTML>" + "<HEAD><TITLE>Not Found</TITLE></HEAD>" + "<BODY>404 File Not Found</BODY</HTML>";
+        }
+
+        // Send statusline and header to browers by writing to socket out stream
+        os.writeBytes(statusLine);
+        // Send content type line
+        os.writeBytes(contentTypeLine);
+        // send blank line to indicate end of header line
+        os.writeBytes(CRLF);
+
+        // send entity body
+        if (fileExists) {
+            sendBytes(fis, os);
+            fis.close();
+        } else {
+            os.writeBytes(entityBody);
+        }
+
+        // if peer closed connection
         if((br.read() == -1)) {
             // CLose streams and socket
             System.out.println("\nAll done. Streams and Socket is closing!\n");
@@ -67,5 +118,31 @@ final public class HttpRequest implements Runnable {
             br.close();
         }
 
+    }
+
+    private void sendBytes(FileInputStream fis, DataOutputStream os) throws Exception {
+        // Construct 1k buffer to hold bytes on  their way to socket
+        byte[] buffer = new byte[1024];
+        int bytes = 0;
+        // copy requested file into socket's output stream
+        while ((bytes = fis.read(buffer)) != -1) {
+            os.write(buffer,0,bytes);
+        }
+    }
+
+    private String contentType(String fileName) {
+        if(fileName.endsWith(".htm") || fileName.endsWith(".html")) {
+            return "text/html";
+        }
+
+        if(fileName.endsWith(".gif")) {
+            return "image/gif";
+        }
+
+        if(fileName.endsWith(".jpeg") || fileName.endsWith(".jpg")) {
+            return "image/jpeg";
+        }
+
+        return "application/octet-stream";
     }
 }

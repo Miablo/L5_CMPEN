@@ -49,7 +49,7 @@ public final class WebServer {
                 // Start thread
                 thread.start();
             }
-
+            // if connection is closed
             break;
 
         }
